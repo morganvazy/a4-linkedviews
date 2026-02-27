@@ -1,6 +1,9 @@
 Assignment 4 - Brushing and Linking
 ===
 
+## Link to vis
+https://morganvazy.github.io/a4-linkedviews/a4-linkedViews.html
+
 ## Parallel coordinates chart and histograms for the Penglings dataset
 For Assignment 4, I decided to model the penglings dataset again using a parallel coordinates chart and histograms. The parallel corrdinates chart have four vertical axes: bill_length_mm, bill_depth_mm, flipper_length_mm, and body_mass_g. The penguin species is also color encoded on this graph with a key to the right side.
 
