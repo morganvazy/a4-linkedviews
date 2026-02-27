@@ -1,56 +1,42 @@
-OPTIONAL OPTIONAL OPTIONAL OPTIONAL OPTIONAL Assignment 4 - Brushing and Linking
+Assignment 4 - Brushing and Linking
 ===
 
-The primary aim of this assignment is to showcase your **individual** skills at supporting interactive experiences with visualizations.
+## Parallel coordinates chart and histograms for the Penglings dataset
+For Assignment 4, I decided to model the penglings dataset again using a parallel coordinates chart and histograms. The parallel corrdinates chart have four vertical axes: bill_length_mm, bill_depth_mm, flipper_length_mm, and body_mass_g. The penguin species is also color encoded on this graph with a key to the right side.
 
-### Your Task
+Static image of parallel coordinates chart with key.
+![](images/Base_Parallel.png)
 
-Your task is to craft a visualization with a dataset of your choosing, and to specifically support brushing and linking of some kind to support exploration through two or more views of the data.
+Hovering over a species in the parallel coordinates chart grays out all paths except for the current species being highlighted. Additionally, hovering over a species in the key (either the circle or the text) also grays out all paths except for those belonging to the specie.
 
-By linked views, we mean:
+Static image of hovering over key to highlight one penguin species.
+![](images/Parallel_Key_Interact.png)
 
-- Have at least two separate visualizations (likely separate SVGs), that visualize data, possibly with different techniques.
-- Linked views means that interacting in one updates the other, and vice versa. Think about the interaction flow that leads to good user experience and aligns with tasks you've identified.
+Below the parallel coordinates chart, there are four histograms that show distributions for bill_length_mm, bill_depth_mm, flipper_length_mm, and body_mass_g. When first opening the visualization, the histograms show distributions for the entire dataset.
 
-Examples of linked views include:
-- A large central map or scatterplot, with ancillary histograms that can be used to filter-- perhaps time or other dimensions
+Static image of histograms upon entering the visualization.
+![](images/Base_histograms.png)
 
+The parallel coordinates graph and the histograms are linked by a brushing feature on the parallel coordinates graph. When brushing the vertical axis of the parallel coordinates, only paths that fit the selected conditions will be highlighted and the rest will be grayed out. Additionally, this will update the histograms with the distribution for only the selected data from the brushing.
 
-Incorporating a brief writeup with your visualization is a good idea.
-Communicate what the original vision was, what the major issues were, and what new things can be seen with your multiple linked views.
+Image of parallel coordinates and histograms without brushing.
+![](images/Base_Parallel_Histograms.png)
 
-### More on Linking Views
-One of the most powerful techniques for mitigating the shortcomings of a given visualization is to link it with other views.
+Image of the parallel coordinates and histograms after brushing.
+![](images/Parallel_Histogram_Brush.png)
 
-Linking a map to a bar or scatterplot, for instance, may allow you to overcome the shortcomings of a map.
-
-In general, linking visualizations allows you to explore different parts of the data between views, and mitigates the shortcomings of a given view by pairing it with other views.
-
-For this assignment, we want to see at least two linked views, in that interactions in one view updates the other, and vice versa. Many multiple views visualizations use more than two views, so consider such directions as possibilities for tech/design achievements. Be sure to think about what views work best for given tasks, and try to iterate/prototype if possible.
-
-Requirements
----
-
-0. Your code should be forked from the GitHub repo and linked using GitHub pages.
-1. Your project should load a dataset you found on the web from the vis you're remixing. You may extract the data by sight if necessary. Put this file in your repo.
-2. Your project should use d3 to build a visualization of the dataset. 
-3. Your writeup (readme.md in the repo) should contain the following:
-
-- Working link to the visualization hosted on gh-pages or other external sources.
-- Concise description and screenshot of your visualization.
-- Description of the technical achievements you attempted with this visualization.
-- Description of the design achievements you attempted with this visualization.
-
-4. Submit a pull request and name it as follow
-```
-a4-your Gh username-your first name-your lastname
-
-```
-
-Extra Links
----
-
-- https://observablehq.com/@philippkoytek/d3-part-3-brushing-and-linking
-- https://github.com/d3/d3-brush
-- https://observablehq.com/collection/@d3/d3-brush
-- https://observablehq.com/@d3/focus-context?collection=@d3/d3-brush
+### Design achievements
+- Histograms are in a 2x2 configuration below the parallel coordinates chart
+- Individualized x axis labels and title for each histogram
+- Species encoded by color and legend included to highlight different species
+### Technical achievements
+- Designed one function that generated four histograms at once
+- incorporated linkage between the legend and the parallel coordinates chart.
+### Sources used
+- https://d3-graph-gallery.com/graph/parallel_custom.html
+- https://css-tricks.com/complete-guide-css-grid-layout/
+- https://observablehq.com/@d3/brushable-parallel-coordinates
+- https://d3js.org/d3-brush
+- https://d3-graph-gallery.com/graph/histogram_basic.html
+- https://observablehq.com/@antonbardera/multidimensional-visualization-linked-views
+- https://d3-graph-gallery.com/graph/custom_legend.html
