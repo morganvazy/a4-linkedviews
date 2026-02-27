@@ -1,0 +1,336 @@
+<!-- The base for this code comes from a d3 example.
+https://d3-graph-gallery.com/graph/parallel_custom.html
+The original code creates a parallel coordinates chart
+for the iris dataset with stratified coloring.
+It was then modified for the epnglings datatset and further modified
+for linked views. -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Create divs for each graph type -->
+ <!--used this resource to make the histograms into a 2x2 grid: https://css-tricks.com/complete-guide-css-grid-layout/-->
+<div id="parallel_coords"></div>
+<div id="histograms" style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 30px"></div>
+
+<!-- Styling the axes for the parallel coordinates graph -->
+<style>
+.axis {
+  opacity: 0.4;
+}
+.axis:hover {
+  opacity: 1;
+}
+</style>
+<script>
+
+//dimensions and margins for parallel coordinates
+var margin = {top: 30, right: 50, bottom: 10, left: 50},
+  width = 460 - margin.left - margin.right,
+  height = 400 - margin.top - margin.bottom;
+
+//append svg to the page
+var svg = d3.select("#parallel_coords")
+.append("svg")
+  .attr("width", width + margin.left + margin.right + 200)
+  .attr("height", height + margin.top + margin.bottom)
+.append("g")
+  .attr("transform",
+        "translate(" + margin.left + "," + margin.top + ")");
+
+//input the data
+d3.csv("https://raw.githubusercontent.com/morganvazy/a4-linkedviews/refs/heads/main/penglings.csv", function(data) {
+
+  //color the data by penguin species
+  var color = d3.scaleOrdinal()
+    .domain(["Adelie", "Chinstrap", "Gentoo" ])
+    .range([ "#440154ff", "#21908dff", "#fde725ff"]) //original codes from the reference
+
+  //dimensions for each of the y axes:
+  dimensions = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"]
+
+  //iterate through each dimension, make a linear scale, and store it in y object
+  var y = {}
+  for (i in dimensions) {
+    name = dimensions[i]
+    y[name] = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return +d[name]; }))//different axis range for each group
+      .range([height, 0])
+  }
+
+  //x axis scale
+  x = d3.scalePoint()
+    .range([0, width])
+    .domain(dimensions);
+
+  //function to highlight the selected species
+  var highlight = function(d){
+
+    selected_specie = d.species
+
+    //all groups turn gray
+    d3.selectAll(".line")
+      .transition().duration(200)
+      .style("stroke", "lightgrey")
+      .style("opacity", "0.2")
+    //hovered specie returns to original color
+    d3.selectAll("." + selected_specie)
+      .transition().duration(200)
+      .style("stroke", color(selected_specie))
+      .style("opacity", "1")
+  }
+
+  //function to unhighlight and put all lines back to original opacity and color
+  var doNotHighlight = function(d){
+    d3.selectAll(".line")
+      .transition().duration(200).delay(1000)
+      .style("stroke", function(d){ return( color(d.species))} )
+      .style("opacity", "1")
+  }
+
+  //using a path to draw the lines between the axes
+  function path(d) {
+      return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+  }
+
+  //draw the lines for the data
+  svg
+    .selectAll("myPath")
+    .data(data)
+    .enter()
+    .append("path")
+      .attr("class", function (d) { return "line " + d.species } ) // 2 class for each line: 'line' and the group name
+      .attr("d",  path)
+      .style("fill", "none" )
+      .style("stroke", function(d){ return( color(d.species))} )
+      .style("opacity", 0.5)
+      .on("mouseover", highlight) //highlight when mouseover
+      .on("mouseleave", doNotHighlight ) //remove hightlight when mouse leaves
+
+  //draw the axes
+  svg.selectAll("myAxis")
+    //add a g element for each dimension:
+    .data(dimensions).enter()
+    .append("g")
+    .attr("class", "axis")
+    // I translate this element to its right position on the x axis
+    .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+    // And I build the axis with the call function
+    .each(function(d) { d3.select(this).call(d3.axisLeft().ticks(5).scale(y[d])); })
+    // Add axis title
+    .append("text")
+      .style("text-anchor", "middle")
+      .attr("y", -9)
+      .text(function(d) { return d; })
+      .style("fill", "black")
+
+//Creating brush behavior so people can highlight certain values in the parallel coordinates
+//idea from https://observablehq.com/@d3/brushable-parallel-coordinates and code from https://d3js.org/d3-brush
+var activeBrushes = {}; //create activeBrushes object
+
+//add the brush to each y axis
+svg.selectAll(".axis")
+.each(function(d){
+    d3.select(this)
+    .append("g")
+    .attr("class", "brush")
+    .call(
+        d3.brushY()
+        .extent([[-10,0], [10, height]]) //define the brush size
+        .on("brush end", brushed)
+    );
+});
+
+//create the brushed function that updates selected data
+function brushed() {
+
+  activeBrushes = {};
+
+  //retrieve active brush selections
+  svg.selectAll(".brush")
+    .each(function(d) {
+        var selection = d3.brushSelection(this);
+        if (selection) {
+            activeBrushes[d] = selection.map(y[d].invert); //convert pixels to data
+        }
+    });
+
+  //update the color of the lines so unselected values are grayed out
+  svg.selectAll(".line")
+    //update the stroke color
+    .style("stroke", function(d) {
+        var visible = true;
+
+        for (var dim in activeBrushes) {
+            var extent = activeBrushes[dim]; //retrieve the activeBrushes
+            if (d[dim] < extent[1] || d[dim] > extent[0]) { //if the active brush is outside the bounds of the brush
+                visible = false; //make it not visible if it is not selected by the brush
+                break;
+            }
+        }
+        return visible ? color(d.species) : "#ddd"; //if it's in the bounds of the brush, set it to the original color, else use light gray
+    })
+    //same logic for setting opacity
+    .style("opacity", function(d) {
+        var visible = true;
+
+        for (var dim in activeBrushes) {
+            var extent = activeBrushes[dim];
+            if (d[dim] < extent[1] || d[dim] > extent[0]) {
+                visible = false;
+                break;
+            }
+        }
+        return visible ? 1 : 0.1;
+    });
+
+    //Update selected data
+    var selectedData = data.filter(function(d){ //create a variable to store selected data from brushes
+      for (var dim in activeBrushes){ //iterate through active brushes
+        var extent = activeBrushes[dim];
+        if (d[dim] < extent[1] || d[dim] > extent[0]){ //if it's outside the brush
+          return false;
+        }
+      }
+      return true;
+    });
+    makeHistogram(selectedData); //make a histogram of the selected data
+}
+
+ // Start histogram code
+
+//code from https://d3-graph-gallery.com/graph/histogram_basic.html
+//modified the code so i could use it to make four histograms in one function
+
+//set size dimensions and margins
+var margin_hist = {top: 30, right: 30, bottom: 60, left: 40},
+    width_hist = 300 - margin_hist.left - margin_hist.right,
+    height_hist = 250 - margin_hist.top - margin_hist.bottom;
+
+//created this function so i could make histograms based on actions on the parallel coordinates chart (linked them).
+//used this resource as the main idea for making the function:
+//https://observablehq.com/@antonbardera/multidimensional-visualization-linked-views
+function makeHistogram(selectedData){
+  //list of the x axes for the four histograms
+  var dims = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"];
+
+  //clear whatever exisiting data is on the histogram
+  d3.select("#histograms").selectAll("svg").remove();
+
+  //append an svg for each dimension to show its histogram
+  dims.forEach(function(dim){
+    var svg_hist = d3.select("#histograms")
+      .append("svg")
+        .attr("width", width_hist + margin_hist.left + margin_hist.right)
+        .attr("height", height_hist + margin_hist.top + margin_hist.bottom)
+      .append("g")
+        .attr("transform", "translate(" + margin_hist.left + "," + margin_hist.top + ")");
+
+  //make an x axis:
+  var x = d3.scaleLinear()
+      .domain(d3.extent(selectedData, d => +d[dim])) //have the x axis auto fit to the min and max of the data
+      .range([0, width_hist]);
+
+  //append the x-axis
+svg_hist.append("g")
+    .attr("transform", "translate(0," + height_hist + ")") //move to bottom of chart
+    .call(d3.axisBottom(x).ticks(10)); //add ticks
+
+  //create histogram
+  var histogram = d3.histogram()
+      .value(d => d[dim])   //the data
+      .domain(x.domain())  //domain
+      .thresholds(x.ticks(20)); //number of bins
+
+  //create a var for the bins
+  var bins = histogram(selectedData);
+
+  //y axis
+  var y = d3.scaleLinear()
+      .range([height_hist, 0]);
+      y.domain([0, d3.max(bins, b => b.length)]);
+  svg_hist
+    .append("g")
+    .call(d3.axisLeft(y));
+
+  //add the rectangle svgs to the graphs
+  svg_hist.selectAll("rect")
+      .data(bins)
+      .enter()
+      .append("rect")
+        .attr("x", d => x(d.x0) + 1)
+        .attr("y", d => y(d.length))
+        .attr("width", d => x(d.x1) - x(d.x0) - 1)
+        .attr("height", d => height_hist - y(d.length))
+        .style("fill", "#69b3a2");
+
+    //x axis labels
+    svg_hist.append("text")
+      .attr("x", width_hist/2)
+      .attr("y", height_hist + margin_hist.bottom - 20)
+      .attr("text-anchor", "middle")
+      .text(dim); //x axis label is the variable
+
+    //y axis label
+    svg_hist.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", -margin_hist.left + 15)
+      .attr("x", -height_hist/2)
+      .attr("text-anchor", "middle")
+      .text("Count"); //same y axis for each one
+
+    svg_hist.append("text")
+      .attr("x", width_hist/2)
+      .attr("y", -10)
+      .attr("text-anchor", "middle")
+      .style("font-weight", "bold")
+      .text("Histogram of " + dim); //specailized histogram name for each histogram
+
+});
+  
+}
+
+makeHistogram(data) //makes a histogramw with all of the data at the beginning
+
+  //Add a legend for the parallel coordinates graph
+// from https://d3-graph-gallery.com/graph/custom_legend.html
+// Add one dot in the legend for each name.
+    var keys = color.domain();
+    var legend = svg.append("g")
+        .attr("transform", "translate(" + (width) + ",20)");
+
+    legend.selectAll("legendDots")
+    .data(keys)
+    .enter()
+    .append("circle")
+        .attr("cx", 100)
+        .attr("cy", function(d,i){ return i*25}) //distance of 25 between dots 
+        .attr("r", 7)
+        .style("fill", function(d){ return color(d)})
+        //adding the logic from previously to change highlighting of species by interacting
+        //with the legend
+        .on("mouseover", function(d){highlight({species: d}); })
+        .on("mouseleave", doNotHighlight)
+
+    // add legend names
+    legend.selectAll("legendLabels")
+    .data(keys)
+    .enter()
+    .append("text")
+        .attr("x", 15)
+        .attr("y", function(d,i){ return i*25})
+        .style("fill", function(d){ return color(d)})
+        .text(function(d){ return d})
+        .attr("text-anchor", "left")
+        .style("alignment-baseline", "middle")
+        //adding the logic from previously to change highlighting of species by interacting
+        //with the legend
+        .on("mouseover", function(d){highlight({species: d}); })
+        .on("mouseleave", doNotHighlight)
+
+});
+    
+
+</script>
